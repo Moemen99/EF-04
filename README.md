@@ -306,3 +306,173 @@ Update-Database
 - MVC applications benefit from client-side validation
 - API projects use validations server-side only
 - Consider using Fluent API for complex mappings
+
+
+
+
+# Entity Framework Core Fluent API Guide
+
+## Table of Contents
+- [Introduction](#introduction)
+- [When to Use Fluent API](#when-to-use-fluent-api)
+- [Implementation](#implementation)
+- [Common Scenarios](#common-scenarios)
+- [Working with External Libraries](#working-with-external-libraries)
+
+## Introduction
+
+Fluent API is the third and most powerful way to configure entity mappings in Entity Framework Core, providing capabilities beyond what Data Annotations can offer.
+
+## When to Use Fluent API
+
+### Primary Use Cases
+
+```mermaid
+graph TD
+    A[Fluent API Usage] -->|Case 1| B[Advanced Configurations]
+    A -->|Case 2| C[External Libraries]
+    B -->|Example 1| D[Composite Keys]
+    B -->|Example 2| E[Default Values]
+    B -->|Example 3| F[Identity Increment]
+    C -->|Scenario| G[IL/DLL Only Access]
+    style A fill:#f9f,stroke:#333
+    style B fill:#9f9,stroke:#333
+    style C fill:#ff9,stroke:#333
+```
+
+1. **Advanced Configurations**
+   - Composite primary keys
+   - Default values for columns
+   - Custom identity increment values
+   - Complex relationships
+   
+2. **External Library Integration**
+   - Configuring entities from external DLLs
+   - No source code access
+   - Working with IL files
+
+## Implementation
+
+### Basic Configuration Structure
+
+```csharp
+public class CompanyDbContext : DbContext
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Fluent API configurations go here
+        modelBuilder.Entity<Employee>()
+            .Property("Address")
+            .HasDefaultValue("Cairo");
+
+        base.OnModelCreating(modelBuilder);
+    }
+}
+```
+
+### Common Configuration Patterns
+
+| Scenario | Fluent API Example |
+|----------|-------------------|
+| Default Value | `.Property(x => x.Address).HasDefaultValue("Cairo")` |
+| Composite Key | `.HasKey(x => new { x.Key1, x.Key2 })` |
+| Identity Seed | `.Property(x => x.Id).UseIdentityColumn(100, 5)` |
+| Required Property | `.Property(x => x.Name).IsRequired()` |
+
+## Common Scenarios
+
+### 1. Composite Primary Keys
+```csharp
+modelBuilder.Entity<OrderDetail>()
+    .HasKey(od => new { od.OrderId, od.ProductId });
+```
+
+### 2. Default Values
+```csharp
+modelBuilder.Entity<Employee>()
+    .Property(e => e.Status)
+    .HasDefaultValue("Active");
+```
+
+### 3. Identity Configuration
+```csharp
+modelBuilder.Entity<Employee>()
+    .Property(e => e.Id)
+    .UseIdentityColumn(1000, 2);  // Starts at 1000, increments by 2
+```
+
+## Working with External Libraries
+
+### Process Flow
+
+```mermaid
+graph LR
+    A[External Library] -->|Reference| B[Project]
+    B -->|Configuration| C[Fluent API]
+    C -->|Override| D[OnModelCreating]
+    style A fill:#f9f,stroke:#333
+    style B fill:#9f9,stroke:#333
+    style C fill:#ff9,stroke:#333
+    style D fill:#9ff,stroke:#333
+```
+
+### Steps to Configure External Entities
+
+1. **Add Reference**
+   ```text
+   Right-click on Dependencies → Add Reference → Browse to DLL
+   ```
+
+2. **Create Configuration**
+   ```csharp
+   protected override void OnModelCreating(ModelBuilder modelBuilder)
+   {
+       modelBuilder.Entity<ExternalEntity>()
+           .ToTable("ExternalEntities")
+           .Property(e => e.SomeProperty)
+           .IsRequired();
+   }
+   ```
+
+## Best Practices
+
+1. **Organization**
+   - Consider splitting configurations into separate classes
+   - Use IEntityTypeConfiguration<T> interface
+   - Group related configurations together
+
+2. **Maintainability**
+   ```csharp
+   public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
+   {
+       public void Configure(EntityTypeBuilder<Employee> builder)
+       {
+           builder.Property(e => e.Address)
+                 .HasDefaultValue("Cairo");
+       }
+   }
+   ```
+
+3. **Documentation**
+   - Comment complex configurations
+   - Document the reasoning behind specific settings
+   - Keep track of identity seeds and increments
+
+## Migration Considerations
+
+1. **Creating Migrations**
+   ```powershell
+   Add-Migration FluentAPIConfigurations
+   ```
+
+2. **Verifying Changes**
+   - Review migration files
+   - Check default values
+   - Verify composite keys
+   - Test identity sequences
+
+## Notes
+- Fluent API takes precedence over Data Annotations
+- Configurations are centralized in OnModelCreating
+- Consider performance implications of complex configurations
+- Always test migrations before applying to production
